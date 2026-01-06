@@ -1,106 +1,30 @@
-using CheckerBase.App;
-using CheckerBase.Core.Configuration;
-using CheckerBase.Core.Engine;
-using CheckerBase.Core.Proxies;
+using CheckerBase.App.UI;
+using Terminal.Gui;
 
-var options = new CheckerOptions
-{
-    DegreeOfParallelism = Environment.ProcessorCount,
-    MaxRetries = 3
-};
-
-var outputOptions = new OutputOptions
-{
-    SuccessPath = "output/success.txt",
-    FailedPath = "output/failed.txt",
-    IgnoredPath = null // Don't write ignored
-};
-
-ProxyRotator? proxyRotator = null;
-if (File.Exists("proxies.txt"))
-{
-    var loadResult = await ProxyLoader.LoadFromFileAsync("proxies.txt");
-    proxyRotator = loadResult.Rotator;
-
-    Console.WriteLine($"Loaded {loadResult.SuccessCount} proxies");
-    if (loadResult.FailedCount > 0)
-        Console.WriteLine($"Warning: {loadResult.FailedCount} lines failed to parse");
-}
-
-// Create checker and engine
-var checker = new ExampleChecker();
-var engine = new CheckerEngine<ComboEntry, CheckResult, HttpClient>(
-    checker, options, outputOptions, proxyRotator);
-
-// Handle Ctrl+C
-Console.CancelKeyPress += (_, e) =>
-{
-    e.Cancel = true;
-    Console.WriteLine("\nCancelling...");
-    engine.Cancel();
-};
-
-// Start metrics display task
-var displayCts = new CancellationTokenSource();
-var metricsTask = Task.Run(async () =>
-{
-    try
-    {
-        while (!displayCts.Token.IsCancellationRequested)
-        {
-            await Task.Delay(1000, displayCts.Token);
-            var m = engine.Metrics.GetSnapshot();
-            var eta = m.ETA?.ToString(@"hh\:mm\:ss") ?? "--:--:--";
-
-            Console.Write($"\r[{m.ElapsedTime:hh\\:mm\\:ss}] " +
-                         $"Progress: {m.ProgressPercent:F1}% | " +
-                         $"Lines: {m.ProcessedLines} | " +
-                         $"Success: {m.SuccessCount} | Failed: {m.FailedCount} | " +
-                         $"CPM: {m.CPM:F0} | ETA: {eta}   ");
-        }
-    }
-    catch (OperationCanceledException)
-    {
-        // Expected
-    }
-});
-
-// Run
-const string inputPath = "input.txt";
-
-if (!File.Exists(inputPath))
-{
-    Console.WriteLine($"Error: Input file '{inputPath}' not found.");
-    return 1;
-}
-
-Console.WriteLine($"Starting with {options.DegreeOfParallelism} workers...");
-Console.WriteLine();
+// Initialize Terminal.Gui
+Application.Init();
 
 try
 {
-    await engine.RunAsync(inputPath);
+    // Create and run the main window
+    using var mainWindow = new MainWindow();
+    Application.Run(mainWindow);
 }
-catch (OperationCanceledException)
+catch (Exception ex)
 {
-    Console.WriteLine("\nCancelled by user.");
+    // Shutdown Terminal.Gui first to restore console
+    Application.Shutdown();
+
+    // Then show the error
+    Console.ForegroundColor = ConsoleColor.Red;
+    Console.WriteLine($"Fatal error: {ex.Message}");
+    Console.ResetColor();
+    Console.WriteLine(ex.StackTrace);
+
+    Environment.Exit(1);
 }
 finally
 {
-    await displayCts.CancelAsync();
-    await metricsTask.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+    // Ensure Terminal.Gui is properly shut down
+    Application.Shutdown();
 }
-
-Console.WriteLine();
-Console.WriteLine();
-
-var final = engine.Metrics.GetSnapshot();
-Console.WriteLine("=== Final Results ===");
-Console.WriteLine($"Total lines: {final.ProcessedLines}");
-Console.WriteLine($"Success: {final.SuccessCount}");
-Console.WriteLine($"Failed: {final.FailedCount}");
-Console.WriteLine($"Ignored: {final.IgnoredCount}");
-Console.WriteLine($"Retries: {final.RetryCount}");
-Console.WriteLine($"Elapsed: {final.ElapsedTime:hh\\:mm\\:ss}");
-
-return 0;

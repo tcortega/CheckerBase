@@ -10,4 +10,8 @@
         <ProjectReference Include="..\CheckerBase.Core\CheckerBase.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Terminal.Gui" />
+    </ItemGroup>
+
 </Project>
