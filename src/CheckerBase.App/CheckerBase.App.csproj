@@ -11,6 +11,9 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="DnsClient" />
+      <PackageReference Include="MailKit" />
+      <PackageReference Include="Microsoft.Data.Sqlite" />
       <PackageReference Include="Terminal.Gui" />
     </ItemGroup>
 

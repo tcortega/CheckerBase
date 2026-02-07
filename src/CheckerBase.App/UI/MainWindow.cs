@@ -1,9 +1,12 @@
 using CheckerBase.App.Configuration;
+using CheckerBase.App.Discovery;
+using CheckerBase.App.Models;
 using CheckerBase.App.Services;
 using CheckerBase.App.State;
 using CheckerBase.App.UI.Dialogs;
 using CheckerBase.App.UI.Views;
 using CheckerBase.Core.Engine;
+using MailKit.Net.Imap;
 using Terminal.Gui;
 using Attribute = Terminal.Gui.Attribute;
 
@@ -17,7 +20,8 @@ public sealed class MainWindow : Toplevel
     private readonly SettingsManager _settingsManager;
     private AppSettings _settings = null!;
     private CheckpointManager _checkpointManager = null!;
-    private EngineController<ComboEntry, CheckResult, HttpClient>? _engineController;
+    private EngineController<EmailEntry, ImapCheckResult, ImapClient>? _engineController;
+    private ServerDiscoveryService? _discoveryService;
 
     private readonly HeaderView _headerView;
     private readonly MetricsPanel _metricsPanel;
@@ -170,10 +174,15 @@ public sealed class MainWindow : Toplevel
 
         // Reset controller if previously used
         _engineController?.Dispose();
+        _discoveryService?.DisposeAsync().AsTask().Wait();
 
-        var checker = new ExampleChecker();
+        // Create discovery service and checker
+        _discoveryService = new ServerDiscoveryService(
+            cacheTtl: TimeSpan.FromDays(_settings.DiscoveryCacheDays));
+        var checker = new ImapChecker(_discoveryService);
+
         _checkpointManager = new CheckpointManager(_settingsManager, _settings);
-        _engineController = new EngineController<ComboEntry, CheckResult, HttpClient>(
+        _engineController = new EngineController<EmailEntry, ImapCheckResult, ImapClient>(
             checker, _settings, _checkpointManager);
 
         _engineController.StateChanged += OnEngineStateChanged;
@@ -358,6 +367,7 @@ public sealed class MainWindow : Toplevel
         {
             StopMetricsTimer();
             _engineController?.Dispose();
+            _discoveryService?.DisposeAsync().AsTask().Wait();
         }
 
         base.Dispose(disposing);

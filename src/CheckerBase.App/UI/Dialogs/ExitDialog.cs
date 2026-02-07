@@ -1,6 +1,8 @@
 using CheckerBase.App.Configuration;
+using CheckerBase.App.Models;
 using CheckerBase.App.Services;
 using CheckerBase.App.State;
+using MailKit.Net.Imap;
 using Terminal.Gui;
 using Attribute = Terminal.Gui.Attribute;
 
@@ -13,7 +15,7 @@ namespace CheckerBase.App.UI.Dialogs;
 public sealed class ExitDialog : Dialog
 {
     private readonly AppSettings _settings;
-    private readonly EngineController<ComboEntry, CheckResult, HttpClient> _engineController;
+    private readonly EngineController<EmailEntry, ImapCheckResult, ImapClient> _engineController;
     private readonly CheckpointManager _checkpointManager;
     private readonly CheckBox _exportRemainingCheckbox;
 
@@ -21,7 +23,7 @@ public sealed class ExitDialog : Dialog
 
     public ExitDialog(
         AppSettings settings,
-        EngineController<ComboEntry, CheckResult, HttpClient> engineController,
+        EngineController<EmailEntry, ImapCheckResult, ImapClient> engineController,
         CheckpointManager checkpointManager)
         : base("Exit", 60, 14)
     {

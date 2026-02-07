@@ -41,6 +41,16 @@ public sealed class AppSettings
     public int MaxRetries { get; set; } = 3;
 
     /// <summary>
+    /// IMAP connection timeout in seconds.
+    /// </summary>
+    public int ImapTimeoutSeconds { get; set; } = 30;
+
+    /// <summary>
+    /// Server discovery cache TTL in days.
+    /// </summary>
+    public int DiscoveryCacheDays { get; set; } = 30;
+
+    /// <summary>
     /// Byte position to resume from (if resuming a previous run).
     /// </summary>
     public long? ResumeBytePosition { get; set; }
@@ -67,6 +77,8 @@ public sealed class AppSettings
         OutputFolder = OutputFolder,
         DegreeOfParallelism = DegreeOfParallelism,
         MaxRetries = MaxRetries,
+        ImapTimeoutSeconds = ImapTimeoutSeconds,
+        DiscoveryCacheDays = DiscoveryCacheDays,
         ResumeBytePosition = ResumeBytePosition,
         ResumeInputPath = ResumeInputPath,
         ResumeTimestamp = ResumeTimestamp
